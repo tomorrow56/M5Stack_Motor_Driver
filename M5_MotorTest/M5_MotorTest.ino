@@ -5,23 +5,7 @@
 
 String DisplayFileName = "";
 
-//ESP32 SPEED Control sample
-
-//LEDC channel of 16 channels (started from zero)
-#define LEDC_CHANNEL_0 0
-#define LEDC_CHANNEL_1 1
-
-//use 8 bit precission for LEDC timer
-#define LEDC_TIMER_BIT 8
-
-//use 10 kHz as a LEDC base frequency
-#define LEDC_BASE_FREQ 20000
-
-int min = 0;
-int max = 255;
-
-int duration = 255; // duration time msec
-int interval = duration / (max - min);
+boolean fwdFlag = true;
 
 void setup_l293d() {
   pinMode( TB_A1, OUTPUT );
@@ -30,12 +14,8 @@ void setup_l293d() {
   pinMode( TB_B1, OUTPUT );
   pinMode( TB_B2, OUTPUT );
 
-  // Set Enable pin to LEDC
-  ledcSetup(LEDC_CHANNEL_0, LEDC_BASE_FREQ, LEDC_TIMER_BIT);
-  ledcSetup(LEDC_CHANNEL_1, LEDC_BASE_FREQ, LEDC_TIMER_BIT);
-
-  ledcAttachPin(TB_Ap, LEDC_CHANNEL_0);  // Motor A
-  ledcAttachPin(TB_Bp, LEDC_CHANNEL_1);  // Motor B
+  pinMode( TB_Ap, OUTPUT);
+  pinMode( TB_Bp, OUTPUT);
    
   digitalWrite( TB_A1, LOW );
   digitalWrite( TB_A2, LOW );
@@ -43,8 +23,9 @@ void setup_l293d() {
   digitalWrite( TB_B1, LOW );
   digitalWrite( TB_B2, LOW );
 
-  ledcWrite(0, min);
-  ledcWrite(1, min);
+  digitalWrite( TB_Ap, LOW );
+  digitalWrite( TB_Bp, LOW );
+
 }
 
 void cmd_forward() {
@@ -56,11 +37,8 @@ void cmd_forward() {
   digitalWrite( TB_B1, HIGH );
   digitalWrite( TB_B2, LOW );
 
-  for(int n = min; n <= max; n++){
-    ledcWrite(0, n);
-    ledcWrite(1, n);
-    delay(interval);
-  }
+  digitalWrite( TB_Ap, HIGH);
+  digitalWrite( TB_Bp, HIGH);
 }
 
 void cmd_back() {
@@ -72,18 +50,15 @@ void cmd_back() {
   digitalWrite( TB_B1, LOW );
   digitalWrite( TB_B2, HIGH );
 
-  for(int n = min; n <= max; n++){
-    ledcWrite(0, n);
-    ledcWrite(1, n);
-    delay(interval);
-  }
+  digitalWrite( TB_Ap, HIGH);
+  digitalWrite( TB_Bp, HIGH);
 }
 
 void cmd_stop() {
   Serial.println("all stop");
 
-  ledcWrite(0, 0);
-  ledcWrite(1, 0);
+  digitalWrite( TB_Ap, LOW);
+  digitalWrite( TB_Bp, LOW);
 }
 
 void cmd_spin_turn() {
@@ -95,11 +70,8 @@ void cmd_spin_turn() {
   digitalWrite( TB_B1, LOW );
   digitalWrite( TB_B2, HIGH );
 
-  for(int n = min; n <= max; n++){
-    ledcWrite(0, n);
-    ledcWrite(1, n);
-    delay(interval);
-  }
+  digitalWrite( TB_Ap, HIGH);
+  digitalWrite( TB_Bp, HIGH);
 }
 
 void cmd_turn_left() {
@@ -111,12 +83,8 @@ void cmd_turn_left() {
   digitalWrite( TB_B1, HIGH );
   digitalWrite( TB_B2, LOW );
 
-  ledcWrite(0, 0);
-
-  for(int n = min; n <= max; n++){
-    ledcWrite(1, n);
-    delay(interval);
-  }
+  digitalWrite( TB_Ap, LOW);
+  digitalWrite( TB_Bp, HIGH);
 }
 
 void cmd_turn_right() {
@@ -128,11 +96,8 @@ void cmd_turn_right() {
   digitalWrite( TB_B1, HIGH );
   digitalWrite( TB_B2, LOW );
 
-  for(int n = min; n <= max; n++){
-    ledcWrite(0, n);
-    delay(interval);
-  }
-  ledcWrite(1, 0);
+  digitalWrite( TB_Ap, HIGH);
+  digitalWrite( TB_Bp, LOW);
 }
 
 void setup() { 
@@ -162,7 +127,13 @@ void loop() {
     }
     if(M5.BtnB.wasPressed()) {
         Serial.printf("B");
-        cmd_back();
+        if(fwdFlag == true){
+          fwdFlag = false;
+          cmd_back();
+        }else{
+          fwdFlag = true;
+          cmd_forward();
+        }
     } 
     if(M5.BtnC.wasPressed()) {
         Serial.printf("C");
